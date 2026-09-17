@@ -1,11 +1,11 @@
 ####
-# JVM image for local Docker / GitHub Actions → GHCR → Azure Container Apps.
+# JVM image for local Docker / GitHub Actions → Artifact Registry → Cloud Run.
 #
 # Build (after ./mvnw -DskipTests package):
 #   docker build -f src/main/docker/Dockerfile.jvm \
 #     --build-arg GIT_REPO=https://github.com/React-CMS-JM/react-cms-courses-service \
 #     --build-arg GIT_SHA=$(git rev-parse HEAD) \
-#     -t ghcr.io/react-cms-jm/react-cms-courses-service:local .
+#     -t us-east1-docker.pkg.dev/PROJECT/react-cms/react-cms-courses-service:local .
 #
 # Run (JWT_SECRET required — entrypoint materializes the verify JWK; same secret as auth):
 #   docker run --rm -p 8083:8083 -e PORT=8083 -e JWT_SECRET=... -e DB_HOST=... ...
