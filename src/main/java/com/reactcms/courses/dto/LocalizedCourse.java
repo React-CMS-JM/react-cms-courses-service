@@ -26,4 +26,5 @@ public class LocalizedCourse {
     public String excerpt;
     public String metaTitle;
     public String metaDescription;
+    public List<MetadataItemResponse> metadata = new ArrayList<>();
 }

@@ -16,7 +16,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,6 +68,7 @@ public class CourseService {
                 result.add(localized);
             }
         }
+        attachMetadata(result);
         return result;
     }
 
@@ -78,6 +82,7 @@ public class CourseService {
         if (localized == null) {
             throw new NotFoundException("Course translation not found: " + id);
         }
+        attachMetadata(List.of(localized));
         return localized;
     }
 
@@ -106,6 +111,7 @@ public class CourseService {
         if (localized == null) {
             throw new NotFoundException("Course translation not found for slug: " + slug);
         }
+        attachMetadata(List.of(localized));
         return localized;
     }
 
@@ -142,8 +148,12 @@ public class CourseService {
             replaceMetadata(post.id, request.metadata);
         }
 
-        return LocalizationHelper.toLocalizedCourse(
+        LocalizedCourse created = LocalizationHelper.toLocalizedCourse(
                 post, PostI18nEntity.findByPostId(post.id), request.translation.languageCode);
+        if (created != null) {
+            attachMetadata(List.of(created));
+        }
+        return created;
     }
 
     @Transactional
@@ -168,7 +178,12 @@ public class CourseService {
             responseLang = LocalizationHelper.normalizeLang(request.translation.languageCode);
         }
 
-        return LocalizationHelper.toLocalizedCourse(post, PostI18nEntity.findByPostId(post.id), responseLang);
+        LocalizedCourse updated = LocalizationHelper.toLocalizedCourse(
+                post, PostI18nEntity.findByPostId(post.id), responseLang);
+        if (updated != null) {
+            attachMetadata(List.of(updated));
+        }
+        return updated;
     }
 
     @Transactional
@@ -177,8 +192,12 @@ public class CourseService {
         Instant now = Instant.now();
         applyStatus(post, status, now);
         post.updatedAt = now;
-        return LocalizationHelper.toLocalizedCourse(
+        LocalizedCourse updated = LocalizationHelper.toLocalizedCourse(
                 post, PostI18nEntity.findByPostId(post.id), LocalizationHelper.normalizeLang(lang));
+        if (updated != null) {
+            attachMetadata(List.of(updated));
+        }
+        return updated;
     }
 
     @Transactional
@@ -212,6 +231,23 @@ public class CourseService {
             }
         }
         return getMetadata(id);
+    }
+
+    private void attachMetadata(List<LocalizedCourse> courses) {
+        if (courses == null || courses.isEmpty()) {
+            return;
+        }
+        List<String> postIds = courses.stream().map(course -> course.id).collect(Collectors.toList());
+        List<PostMetadataEntity> rows = PostMetadataEntity.list("postId in ?1", postIds);
+        Map<String, List<MetadataItemResponse>> byPostId = new HashMap<>();
+        for (PostMetadataEntity row : rows) {
+            byPostId
+                    .computeIfAbsent(row.postId, ignored -> new ArrayList<>())
+                    .add(new MetadataItemResponse(row.id, row.postId, row.metaKey, row.metaValue));
+        }
+        for (LocalizedCourse course : courses) {
+            course.metadata = byPostId.getOrDefault(course.id, Collections.emptyList());
+        }
     }
 
     private void applyStatus(PostEntity post, String status, Instant now) {
