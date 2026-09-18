@@ -7,6 +7,7 @@ import com.reactcms.courses.dto.MetadataItemRequest;
 import com.reactcms.courses.dto.MetadataItemResponse;
 import com.reactcms.courses.dto.UpdateCourseRequest;
 import com.reactcms.courses.entity.ContentTypeEntity;
+import com.reactcms.courses.entity.CourseLessonEntity;
 import com.reactcms.courses.entity.PostEntity;
 import com.reactcms.courses.entity.PostI18nEntity;
 import com.reactcms.courses.entity.PostMetadataEntity;
@@ -69,6 +70,7 @@ public class CourseService {
             }
         }
         attachMetadata(result);
+        attachLessonCounts(result);
         return result;
     }
 
@@ -83,6 +85,7 @@ public class CourseService {
             throw new NotFoundException("Course translation not found: " + id);
         }
         attachMetadata(List.of(localized));
+        attachLessonCounts(List.of(localized));
         return localized;
     }
 
@@ -112,6 +115,7 @@ public class CourseService {
             throw new NotFoundException("Course translation not found for slug: " + slug);
         }
         attachMetadata(List.of(localized));
+        attachLessonCounts(List.of(localized));
         return localized;
     }
 
@@ -152,6 +156,7 @@ public class CourseService {
                 post, PostI18nEntity.findByPostId(post.id), request.translation.languageCode);
         if (created != null) {
             attachMetadata(List.of(created));
+            attachLessonCounts(List.of(created));
         }
         return created;
     }
@@ -182,6 +187,7 @@ public class CourseService {
                 post, PostI18nEntity.findByPostId(post.id), responseLang);
         if (updated != null) {
             attachMetadata(List.of(updated));
+            attachLessonCounts(List.of(updated));
         }
         return updated;
     }
@@ -196,6 +202,7 @@ public class CourseService {
                 post, PostI18nEntity.findByPostId(post.id), LocalizationHelper.normalizeLang(lang));
         if (updated != null) {
             attachMetadata(List.of(updated));
+            attachLessonCounts(List.of(updated));
         }
         return updated;
     }
@@ -247,6 +254,21 @@ public class CourseService {
         }
         for (LocalizedCourse course : courses) {
             course.metadata = byPostId.getOrDefault(course.id, Collections.emptyList());
+        }
+    }
+
+    private void attachLessonCounts(List<LocalizedCourse> courses) {
+        if (courses == null || courses.isEmpty()) {
+            return;
+        }
+        List<String> courseIds = courses.stream().map(course -> course.id).collect(Collectors.toList());
+        List<CourseLessonEntity> rows = CourseLessonEntity.list("courseId in ?1", courseIds);
+        Map<String, Integer> counts = new HashMap<>();
+        for (CourseLessonEntity row : rows) {
+            counts.merge(row.courseId, 1, Integer::sum);
+        }
+        for (LocalizedCourse course : courses) {
+            course.lessonCount = counts.getOrDefault(course.id, 0);
         }
     }
 

@@ -27,4 +27,6 @@ public class LocalizedCourse {
     public String metaTitle;
     public String metaDescription;
     public List<MetadataItemResponse> metadata = new ArrayList<>();
+    /** Number of lessons for this course (avoids N+1 lesson list fetches on browse pages). */
+    public Integer lessonCount = 0;
 }
