@@ -5,6 +5,7 @@ import com.reactcms.courses.dto.CourseTranslationRequest;
 import com.reactcms.courses.dto.LocalizedCourse;
 import com.reactcms.courses.dto.MetadataItemRequest;
 import com.reactcms.courses.dto.MetadataItemResponse;
+import com.reactcms.courses.dto.PageResult;
 import com.reactcms.courses.dto.UpdateCourseRequest;
 import com.reactcms.courses.entity.ContentTypeEntity;
 import com.reactcms.courses.entity.CourseLessonEntity;
@@ -46,20 +47,29 @@ public class CourseService {
         return post;
     }
 
-    public List<LocalizedCourse> list(String status, String lang, boolean includeNonPublished) {
+    public PageResult<LocalizedCourse> list(
+            String status, String lang, boolean includeNonPublished, int page, int size) {
         String language = LocalizationHelper.normalizeLang(lang);
         Integer courseTypeId = requireCourseContentTypeId();
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
 
-        List<PostEntity> posts;
+        StringBuilder where = new StringBuilder("contentTypeId = ?1");
+        List<Object> params = new ArrayList<>();
+        params.add(courseTypeId);
+
         if (status != null && !status.isBlank()) {
-            posts = PostEntity.list("contentTypeId = ?1 and status = ?2 order by createdAt desc",
-                    courseTypeId, status.trim());
-        } else if (includeNonPublished) {
-            posts = PostEntity.list("contentTypeId = ?1 order by createdAt desc", courseTypeId);
-        } else {
-            posts = PostEntity.list("contentTypeId = ?1 and status = ?2 order by createdAt desc",
-                    courseTypeId, "published");
+            where.append(" and status = ?2");
+            params.add(status.trim());
+        } else if (!includeNonPublished) {
+            where.append(" and status = ?2");
+            params.add("published");
         }
+
+        long total = PostEntity.count(where.toString(), params.toArray());
+        List<PostEntity> posts = PostEntity.find(where + " order by createdAt desc", params.toArray())
+                .page(safePage, safeSize)
+                .list();
 
         List<LocalizedCourse> result = new ArrayList<>();
         for (PostEntity post : posts) {
@@ -71,7 +81,7 @@ public class CourseService {
         }
         attachMetadata(result);
         attachLessonCounts(result);
-        return result;
+        return new PageResult<>(result, safePage, safeSize, total);
     }
 
     public LocalizedCourse getById(String id, String lang, boolean includeNonPublished) {

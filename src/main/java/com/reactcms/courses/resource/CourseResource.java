@@ -4,6 +4,7 @@ import com.reactcms.courses.dto.CreateCourseRequest;
 import com.reactcms.courses.dto.LocalizedCourse;
 import com.reactcms.courses.dto.MetadataItemRequest;
 import com.reactcms.courses.dto.MetadataItemResponse;
+import com.reactcms.courses.dto.PageResult;
 import com.reactcms.courses.dto.StatusUpdateRequest;
 import com.reactcms.courses.dto.UpdateCourseRequest;
 import com.reactcms.courses.service.CourseService;
@@ -14,6 +15,7 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
@@ -39,10 +41,12 @@ public class CourseResource {
 
     @GET
     @PermitAll
-    public List<LocalizedCourse> list(
+    public PageResult<LocalizedCourse> list(
             @QueryParam("status") String status,
-            @QueryParam("lang") String lang) {
-        return courseService.list(status, lang, isAuthenticated());
+            @QueryParam("lang") String lang,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("20") int size) {
+        return courseService.list(status, lang, isAuthenticated(), page, size);
     }
 
     @GET
