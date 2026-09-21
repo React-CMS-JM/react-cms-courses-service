@@ -1,6 +1,7 @@
 package com.reactcms.courses.resource;
 
 import com.reactcms.courses.dto.CreateCourseRequest;
+import com.reactcms.courses.dto.CourseStats;
 import com.reactcms.courses.dto.LocalizedCourse;
 import com.reactcms.courses.dto.MetadataItemRequest;
 import com.reactcms.courses.dto.MetadataItemResponse;
@@ -47,6 +48,13 @@ public class CourseResource {
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") int size) {
         return courseService.list(status, lang, isAuthenticated(), page, size);
+    }
+
+    @GET
+    @Path("/stats")
+    @Authenticated
+    public CourseStats stats() {
+        return courseService.stats();
     }
 
     @GET

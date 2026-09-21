@@ -2,6 +2,7 @@ package com.reactcms.courses.service;
 
 import com.reactcms.courses.dto.CreateCourseRequest;
 import com.reactcms.courses.dto.CourseTranslationRequest;
+import com.reactcms.courses.dto.CourseStats;
 import com.reactcms.courses.dto.LocalizedCourse;
 import com.reactcms.courses.dto.MetadataItemRequest;
 import com.reactcms.courses.dto.MetadataItemResponse;
@@ -82,6 +83,14 @@ public class CourseService {
         attachMetadata(result);
         attachLessonCounts(result);
         return new PageResult<>(result, safePage, safeSize, total);
+    }
+
+    /** All-status course count for the admin dashboard (no list payload). */
+    public CourseStats stats() {
+        Integer courseTypeId = requireCourseContentTypeId();
+        CourseStats stats = new CourseStats();
+        stats.total = PostEntity.count("contentTypeId", courseTypeId);
+        return stats;
     }
 
     public LocalizedCourse getById(String id, String lang, boolean includeNonPublished) {
